@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
-import 'package:toggle_switch/toggle_switch.dart';
 import 'package:weather/app/common/dimens/dimens.dart';
+import 'package:weather/app/modules/widgets/gauge_widget.dart';
+import 'package:weather/app/modules/widgets/report_section.dart';
+import 'package:weather/app/modules/widgets/today_forecast.dart';
+import 'package:weather/app/modules/widgets/wind_widget.dart';
+import 'package:weather/app/routes/app_pages.dart';
 
 import '../controllers/home_controller.dart';
 
@@ -20,46 +24,86 @@ class HomeView extends GetView<HomeController> {
               var status = controller.status;
               var data = controller.weatherData.value;
               if (status.value.isSuccess) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppTextStyle.mediumVerticalSpacing,
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${data?.name}, ${data?.sys?.country}',
-                              style: AppTextStyle.largeSubHeaderStyle,
-                            ),
-                            Text("${controller.currentDay.value}")
-                          ],
-                        ),
-                        Spacer(),
-                        _buildSwitchButtonWidget()
-                      ],
-                    ),
-                    AppTextStyle.extraLargeVerticalSpacing,
-                    Text(
-                      "${data?.main?.temp}",
-                      style: AppTextStyle.headerStyle,
-                    ),
-                    Text(
-                      "${data?.weather?[0].description}",
-                      style: AppTextStyle.largeSubHeaderStyle,
-                    ),
-                    AppTextStyle.extraLargeVerticalSpacing,
-                    _buildReportSection(
-                        data?.main?.feelsLike,
-                        100,
-                        'Low',
-                        data?.wind?.speed,
-                        data?.main?.humidity,
-                        data?.clouds?.all)
-                  ],
+                return SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AppTextStyle.mediumVerticalSpacing,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${data?.name}, ${data?.sys?.country}',
+                                style: AppTextStyle.largeSubHeaderStyle,
+                              ),
+                              Text("${controller.currentDay.value}")
+                            ],
+                          ),
+                          Spacer(),
+                          IconButton(
+                              onPressed: () {
+                                Get.toNamed(Routes.SEARCH_PAGE);
+                              },
+                              icon: Icon(Icons.search))
+                        ],
+                      ),
+                      AppTextStyle.extraLargeVerticalSpacing,
+                      Text(
+                        "${data?.main?.temp?.toInt()}\u00B0F",
+                        style: AppTextStyle.headerStyle,
+                      ),
+                      Text(
+                        "${data?.weather?[0].description}",
+                        style: AppTextStyle.largeSubHeaderStyle,
+                      ),
+                      AppTextStyle.extraLargeVerticalSpacing,
+                      ReportSection(
+                          feelsLike: '${data?.main?.feelsLike?.toInt()}\u00B0F',
+                          precipitation: '100',
+                          uvIndex: 'Low',
+                          wind: '${data?.wind?.speed}',
+                          humidity: '${data?.main?.humidity}',
+                          cloudiness: '${data?.clouds?.all}'),
+                      AppTextStyle.mediumVerticalSpacing,
+                      TodayForecast(list: controller.todayData),
+                      AppTextStyle.mediumVerticalSpacing,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          WindWidget(
+                              windValue: controller.windSpeed.value ?? 0.0),
+                          GaugeWidget(
+                            progress: controller.humidity.value ?? 0.0,
+                            title: 'Humidity',
+                            maxValue: 100,
+                            unit: 'g/Kg',
+                          )
+                        ],
+                      ),
+                      AppTextStyle.mediumVerticalSpacing,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GaugeWidget(
+                            progress: controller.pressure.value ?? 0.0,
+                            title: 'Pressure',
+                            maxValue: 3000,
+                            unit: 'pa',
+                          ),
+                          GaugeWidget(
+                            progress: controller.tempInFaradays.value ?? 0,
+                            title: 'Temp',
+                            maxValue: 1000,
+                            unit: '\u00B0F',
+                          )
+                        ],
+                      )
+                    ],
+                  ),
                 );
               } else if (status.value.isError) {
                 return Center(
@@ -74,105 +118,6 @@ class HomeView extends GetView<HomeController> {
           ),
         ),
       ),
-    );
-  }
-
-  _buildReportSection(
-      feelsLike, precipitation, uvIndex, wind, humidity, cloudiness) {
-    return Container(
-      child: Column(
-        children: [
-          IntrinsicHeight(
-            child: Padding(
-              padding: EdgeInsets.all(10),
-              child: Row(
-                children: [
-                  _buildReportWidget(Icons.thermostat, 'Feels like', feelsLike),
-                  VerticalDivider(
-                    color: Color(0xFFADD8E6).withOpacity(0.7),
-                    thickness: 1,
-                  ),
-                  _buildReportWidget(Icons.water_drop_outlined, 'Precipitation',
-                      '${precipitation}%'),
-                  VerticalDivider(
-                    color: Color(0xFFADD8E6).withOpacity(0.7),
-                    thickness: 1,
-                  ),
-                  _buildReportWidget(Icons.sunny, 'UV Index', uvIndex)
-                ],
-              ),
-            ),
-          ),
-          AppTextStyle.mediumVerticalSpacing,
-          Divider(
-            height: 1,
-            color: Color(0xFFADD8E6).withOpacity(0.7),
-          ),
-          AppTextStyle.mediumVerticalSpacing,
-          IntrinsicHeight(
-            child: Padding(
-              padding: EdgeInsets.all(10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildReportWidget(Icons.wind_power, 'Wind', '$wind m/s'),
-                  VerticalDivider(
-                    color: Color(0xFFADD8E6).withOpacity(0.7),
-                    thickness: 1,
-                  ),
-                  _buildReportWidget(
-                      Icons.water_drop, "Humidity", '$humidity%'),
-                  VerticalDivider(
-                    color: Color(0xFFADD8E6).withOpacity(0.7),
-                    thickness: 1,
-                  ),
-                  _buildReportWidget(Icons.cloud, "Cloudiness", '$cloudiness%')
-                ],
-              ),
-            ),
-          )
-        ],
-      ),
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Color(0xFFADD8E6).withOpacity(0.2)),
-    );
-  }
-
-  _buildReportWidget(icon, title, amount) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        CircleAvatar(
-          backgroundColor: Color(0xFFADD8E6),
-          child: Icon(
-            icon,
-            color: Colors.white,
-          ),
-        ),
-        AppTextStyle.smallVerticalSpacing,
-        Column(
-          children: [Text(title), Text('$amount')],
-        )
-      ],
-    );
-  }
-
-  _buildSwitchButtonWidget() {
-    return ToggleSwitch(
-      minWidth: 60,
-      cornerRadius: 10,
-      activeBgColor: [Color(0xFFADD8E6)],
-      activeFgColor: Colors.white,
-      inactiveBgColor: Colors.grey.withOpacity(0.3),
-      inactiveFgColor: Colors.black,
-      initialLabelIndex: 1,
-      totalSwitches: 2,
-      labels: ['\u00B0C', '\u00B0F'],
-      radiusStyle: true,
-      onToggle: (index) {
-        //todo
-      },
     );
   }
 }
